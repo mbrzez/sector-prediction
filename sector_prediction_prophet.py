@@ -199,14 +199,10 @@ statistics(X,'x')
 # Rozmiary TRAIN_SIZE i TEST_SIZE podano na początku skryptu
 
 # Zbiór treningowy
-X_train = X.iloc[:TRAIN_SIZE]
-
-# Zbiór walidacyjny
-X_val = X.iloc[TRAIN_SIZE: TRAIN_SIZE + VAL_SIZE]
+X_train = X[-(TRAIN_SIZE + TEST_SIZE):-TEST_SIZE]
 
 # Zbiór testowy
-X_test = X.iloc[TRAIN_SIZE + VAL_SIZE: TRAIN_SIZE + VAL_SIZE + TEST_SIZE]
-
+X_test = X[-TEST_SIZE:]
 
 # Tworzenie wykresu
 plt.figure(figsize=(12,6))
@@ -214,10 +210,9 @@ plt.plot(X['ds'], X['y'], label='Indeksy sektorowe', color='blue')
 
 # Dodanie pionowych linii oddzielających zbiory
 plt.axvline(X_train['ds'].iloc[-1], color='red', linestyle='dashed', label='Podział Train/Val')
-plt.axvline(X_val['ds'].iloc[-1], color='green', linestyle='dashed', label='Podział Val/Test')
 
 # Dodanie etykiet i legendy
-plt.title("Podział na zbiory: Treningowy, Walidacyjny i Testowy")
+plt.title("Podział na zbiory: Treningowy i Testowy")
 plt.xlabel("Data")
 plt.ylabel("Wartość USD")
 plt.legend()
@@ -228,7 +223,7 @@ plt.show()
 
 # Uruchomienie Optuna
 study = optuna.create_study(direction='minimize')  # Minimalizacja RMSE
-study.optimize(lambda trial: objective(trial, X_train, X_val), n_trials=OPTUNA_ITERATIONS)
+study.optimize(lambda trial: objective(trial, X_train, X_test), n_trials=OPTUNA_ITERATIONS)
 
 # Najlepsze hiperparametry
 print("\nNajlepsze parametry:", study.best_params)
@@ -257,18 +252,6 @@ for reg in regressors:
 
 final_model.fit(X_train)
 
-# Prognoza na zbiorze walidacyjnym
-future_val = X_val[['ds'] + regressors]
-forecast_val = final_model.predict(future_val)
-
-X_val = X_val.reset_index(drop=True)
-forecast_val = forecast_val.reset_index(drop=True)
-
-rmse_val = mean_squared_error(X_val['y'], forecast_val['yhat'])
-mape_val=np.mean(np.abs((X_val['y'] - forecast_val['yhat']) / X_val['y'])) * 100
-print(f"\nRMSE dla walidacji: {rmse_val}")
-print(f"MAPE dla walidacji: {mape_val:.2f}%")
-
 # Prognoza na zbiorze testowym
 future_test = X_test[['ds'] + regressors]
 forecast_test = final_model.predict(future_test)
@@ -282,12 +265,8 @@ print(f"\nRMSE dla testu: {rmse_test}")
 print(f"MAPE dla testu: {mape_test:.2f}%")
 
 # ====================================== Prognoza zmiennych objaśniających ======================================
-
-X_for_regressors=X.iloc[-(TEST_SIZE + VAL_SIZE):]
-
-
 # Lista zmiennych objaśniających (bez 'ds' i 'y')
-regressors = [col for col in X_for_regressors.columns if col not in ['ds', 'y']]
+regressors = [col for col in X_test.columns if col not in ['ds', 'y']]
 
 # Słownik do przechowywania prognoz dla zmiennych objaśniających
 regressor_forecasts = {}
@@ -297,7 +276,7 @@ for regressor in regressors:
     print(f"\nPrognozowanie zmiennej objaśniającej: {regressor}")
 
     # Tworzymy kopię danych tylko dla tej zmiennej
-    df_regressor = X_for_regressors[['ds', regressor]].dropna()  # Usuwamy ewentualne brakujące wartości
+    df_regressor = X_test[['ds', regressor]].dropna()  # Usuwamy ewentualne brakujące wartości
 
     # Tworzenie i dopasowanie modelu Prophet
     model_regressor = Prophet(
@@ -307,6 +286,7 @@ for regressor in regressors:
 
     # Tworzenie przyszłych dat
     future_regressor = model_regressor.make_future_dataframe(periods=FORECAST)
+    
     # Usuwanie weekendów (soboty i niedziele)
     future_regressor = future_regressor[~future_regressor['ds'].dt.weekday.isin([5, 6])]
 
@@ -327,12 +307,10 @@ for regressor, forecast_df in regressor_forecasts.items():
 # Wykorzystanie przewidzianych wartości zmiennych objaśniających do prognozy finalnej
 future_forecast = final_model.predict(future_final)
 
-X_val_test=X.iloc[-(VAL_SIZE+TEST_SIZE):]
-
-# Przygotowanie danych do wykresu (tylko ostatnie VAL+TEST SIZE + FORECAST)
-X_dates=X_val_test['ds'].values
+# Przygotowanie danych do wykresu (tylko ostatnie TEST SIZE + FORECAST)
+X_dates=X_test['ds'].values
 X_dates_pred = future_final['ds'].values
-y_test_true = X_val_test['y'].values  # Rzeczywiste wartości
+y_test_true = X_test['y'].values  # Rzeczywiste wartości
 y_test_pred = future_forecast['yhat'].values  # Prognozy modelu
 y_test_upper = future_forecast['yhat_upper'].values  # Górny przedział ufności
 y_test_lower = future_forecast['yhat_lower'].values  # Dolny przedział ufności

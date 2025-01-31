@@ -30,26 +30,26 @@ def objective(trial, X: pd.DataFrame, y: pd.DataFrame, train_size: int, val_size
     rmse_scores = []
 
     for X_train, y_train, X_val, y_val, X_test, y_test in sliding_window_split(X, y, train_size, val_size, test_size):
-      assert X_train.shape[0] > 0 and y_train.shape[0] > 0, 'Puste dane treningowe!'
-      assert X_val.shape[0] > 0 and y_val.shape[0] > 0, 'Puste dane walidacyjne!'
-      assert len(y_train.shape) == 1 and len(y_val.shape) == 1, 'Etykiety muszą być wektorami 1D!'
+        assert X_train.shape[0] > 0 and y_train.shape[0] > 0, 'Puste dane treningowe!'
+        assert X_val.shape[0] > 0 and y_val.shape[0] > 0, 'Puste dane walidacyjne!'
+        assert len(y_train.shape) == 1 and len(y_val.shape) == 1, 'Etykiety muszą być wektorami 1D!'
 
-      model = xgb.XGBRegressor(**param,early_stopping_rounds=10)
+        model = xgb.XGBRegressor(**param, early_stopping_rounds=10)
 
-      # Trening na zbiorze treningowym
-      model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+        # Trening na zbiorze treningowym
+        model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
 
-      # Predykcja na zbiorze testowym
-      y_pred = model.predict(X_test)
+        # Predykcja na zbiorze testowym
+        y_pred = model.predict(X_test)
 
-      # Obliczanie RMSE na zbiorze testowym
-      rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-      rmse_scores.append(rmse)
+        # Obliczanie RMSE na zbiorze testowym
+        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        rmse_scores.append(rmse)
 
-      # Średnia wartość RMSE ze wszystkich podziałów
-      mean_rmse = np.mean(rmse_scores)
+        # Średnia wartość RMSE ze wszystkich podziałów
+        mean_rmse = np.mean(rmse_scores)
 
-      return mean_rmse
+        return mean_rmse
     
 
 # Dla Optuny i każdej iteracji zwraca zbiory treningowy, walidacyjny i testowy
@@ -58,17 +58,17 @@ def sliding_window_split(X: pd.DataFrame, y: pd.DataFrame, train_size: int, val_
     # Pętla przesuwająca się
     # Okno przesuwa się w każdej iteracji, w miarę jak start przesuwa się do przodu.
     for start in range(len(X) - train_size - val_size - test_size + 1):
-            # Zbiór treningowy
-            X_train = X[start: start + train_size]
-            y_train = y[start: start + train_size]
+        # Zbiór treningowy
+        X_train = X[start: start + train_size]
+        y_train = y[start: start + train_size]
 
-            # Zbiór walidacyjny
-            X_val = X[start + train_size: start + train_size + val_size]
-            y_val = y[start + train_size: start + train_size + val_size]
+        # Zbiór walidacyjny
+        X_val = X[start + train_size: start + train_size + val_size]
+        y_val = y[start + train_size: start + train_size + val_size]
 
-            # Zbiór testowy
-            X_test = X[start + train_size + val_size: start + train_size + val_size + test_size]
-            y_test = y[start + train_size + val_size: start + train_size + val_size + test_size]
+        # Zbiór testowy
+        X_test = X[start + train_size + val_size: start + train_size + val_size + test_size]
+        y_test = y[start + train_size + val_size: start + train_size + val_size + test_size]
 
-            # Zwraca kolejne wyniki, jeden po drugim
-            yield X_train, y_train, X_val, y_val, X_test, y_test
+        # Zwraca kolejne wyniki, jeden po drugim
+        yield X_train, y_train, X_val, y_val, X_test, y_test
