@@ -20,5 +20,3 @@ def clean_data(df: pd.DataFrame, threshold: int):
         print(columns_to_remove)
     else:
         print('\nNie usunięto żadnych kolumn, wszystkie spełniają wymagania.')
-
-    return df

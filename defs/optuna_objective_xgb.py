@@ -6,17 +6,26 @@ from sklearn.metrics import mean_squared_error
 
 # Funkcja celu dla Optuny do optymalizacji hiperparametrów
 def objective(trial, X: pd.DataFrame, y: pd.DataFrame, train_size: int, val_size: int, test_size: int):
-    
+
     # Przestrzeń poszukiwań hiperparametrów
+    # -------------------------------------
+    # objective         Funkcja kosztu dla regresji
+    # eval_metric       RMSE do oceny modelu
+    # max_depth         Max. głębokość drzewa decyzyjnego
+    # learning_rate     Szybkość uczenia (od, do), LR wpływa na długość kroku iteracji, skala logarytmiczna
+    # gamma             Minimalna redukcja kosztu, wymagana do podziału węzła, im wyższe tym mniej podziałów (jeśli GAIN<Gamma to nie idz dalej)
+    # reg_alpha         Redukcja wag cech nieistotnych, pomaga w selekcji cech (wagi nieistotnych cech są redukowane)
+    # reg_lambda        Ograniczenie wielkości wag, im lambda większa tym Similarity Score mniejszy, model się uogólnia (zapobiegamy overfittingowi)
+
     param = {
-        'objective': 'reg:squarederror',          # Funkcja kosztu dla regresji
-        'eval_metric': 'rmse',                    # RMSE do oceny modelu
-        'max_depth': 20,                          # Max. głębokość drzewa decyzyjnego
-        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1, log=True), # Szybkość uczenia (od, do), LR wpływa na długość kroku iteracji, skala logarytmiczna
-        'gamma': 1,                               # Minimalna redukcja kosztu, wymagana do podziału węzła, im wyższe tym mniej podziałów (jeśli GAIN<Gamma to nie idz dalej)
-        'reg_alpha': trial.suggest_float('reg_alpha', 0, 5),    # Redukcja wag cech nieistotnych, pomaga w selekcji cech (wagi nieistotnych cech są redukowane)
-        'reg_lambda': trial.suggest_float('reg_lambda', 1, 5)   # Ograniczenie wielkości wag, im lambda większa tym Similarity Score mniejszy, model się uogólnia (zapobiegamy overfittingowi)
-        }
+        'objective': 'reg:squarederror',
+        'eval_metric': 'rmse',
+        'max_depth': 20,
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1, log=True),
+        'gamma': 1,
+        'reg_alpha': trial.suggest_float('reg_alpha', 0, 5),
+        'reg_lambda': trial.suggest_float('reg_lambda', 1, 5)
+    }
 
     rmse_scores = []
 
@@ -61,4 +70,5 @@ def sliding_window_split(X: pd.DataFrame, y: pd.DataFrame, train_size: int, val_
             X_test = X[start + train_size + val_size: start + train_size + val_size + test_size]
             y_test = y[start + train_size + val_size: start + train_size + val_size + test_size]
 
-            yield X_train, y_train, X_val, y_val, X_test, y_test #yield zwraca kolejne wyniki, jeden po drugim
+            # Zwraca kolejne wyniki, jeden po drugim
+            yield X_train, y_train, X_val, y_val, X_test, y_test
